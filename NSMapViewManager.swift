@@ -1,9 +1,5 @@
 //
 //  NSMapViewManager.swift
-//  10000114CarProject
-//
-//  Created by 张晓滨 on 2019/4/18.
-//  Copyright © 2019 一万一一四. All rights reserved.
 //
 
 import Foundation
@@ -237,7 +233,7 @@ extension NSMapViewManager : BMKPoiSearchDelegate {
         let citySearchOption = BMKCitySearchOption()
         citySearchOption.pageIndex = 0
         citySearchOption.pageCapacity = 20
-        citySearchOption.city = "汕头"
+        citySearchOption.city = "广州"
         citySearchOption.keyword = searchText
         
         let flage : Bool = poiSearch.poiSearch(inCity: citySearchOption)

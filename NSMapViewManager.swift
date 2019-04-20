@@ -233,7 +233,7 @@ extension NSMapViewManager : BMKPoiSearchDelegate {
         let citySearchOption = BMKCitySearchOption()
         citySearchOption.pageIndex = 0
         citySearchOption.pageCapacity = 20
-        citySearchOption.city = "汕头"
+        citySearchOption.city = "广东"
         citySearchOption.keyword = searchText
         
         let flage : Bool = poiSearch.poiSearch(inCity: citySearchOption)
@@ -306,16 +306,16 @@ extension NSMapViewManager : BMKRouteSearchDelegate {
         //实例化线路检索节点信息类对象
         let start = BMKPlanNode()
         //起点名称
-//        start.name = "汕头市科技馆"
+//        start.name = ""
 //        //起点所在城市
-//        start.cityName = "汕头市"
+//        start.cityName = ""
         start.pt = userCurrentCoor
         //实例化线路检索节点信息类对象
         let end = BMKPlanNode()
         //终点名称
-//        end.name = "火车站"
+//        end.name = ""
 //        //终点所在城市
-//        end.cityName = "汕头市"
+//        end.cityName = ""
         end.pt = destinationCoor
         drivingRoutePlanOption.from = start
         drivingRoutePlanOption.to = end

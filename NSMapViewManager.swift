@@ -19,7 +19,7 @@ class NSMapViewManager : NSObject {
     }
     
     lazy var reloadView : UIImageView = {
-        let reloadView = UIImageView(frame: CGRect(x: SCREEN_WIDTH - 70, y: SCREEN_HEIGHT -  CGFloat(CommonUseClass._sharedManager.navigationBarHeight()) - 30 - 70, width: 58, height:58))
+        let reloadView = UIImageView(frame: CGRect(x: SCREEN_WIDTH - 70, y: SCREEN_HEIGHT -  CGFloat(CommonUseClass._sharedManager.navigationBarHeight()) - 70 - 40, width: 58, height:58))
         reloadView.image = UIImage.init(named: "reloadMapView")
         reloadView.isUserInteractionEnabled = true
         let tap: UITapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(loadingMapView))
@@ -28,7 +28,7 @@ class NSMapViewManager : NSObject {
     }()
     
     lazy var zoomBtnsView : UIView  = {
-        let zoomBtnsView = UIView(frame: CGRect(x: 20, y: SCREEN_HEIGHT -  CGFloat(CommonUseClass._sharedManager.navigationBarHeight()) - 97 - 40, width: 36, height: 97))
+        let zoomBtnsView = UIView(frame: CGRect(x: 16, y: SCREEN_HEIGHT -  CGFloat(CommonUseClass._sharedManager.navigationBarHeight()) - 97 - 40, width: 36, height: 97))
         zoomBtnsView.backgroundColor = .white
         zoomBtnsView.isUserInteractionEnabled = true
         
@@ -38,7 +38,7 @@ class NSMapViewManager : NSObject {
         btn1.addTarget(self, action: #selector(btnClickAction(button:)), for: .touchUpInside)
         zoomBtnsView.addSubview(btn1)
         
-        let view = UIView(frame: CGRect(x: 6, y: 48, width: 12, height: 1))
+        let view = UIView(frame: CGRect(x: 6, y: 48, width: 24, height: 1))
         view.backgroundColor = colorWithHexString("0xf5f5f5")
         zoomBtnsView.addSubview(view)
         
@@ -69,6 +69,8 @@ class NSMapViewManager : NSObject {
     //全局变量
     var searchText : String?
     var annotationStype : AnnotationViewStype?
+    var destinationCoor : CLLocationCoordinate2D!   //目的地坐标
+    var userCurrentCoor : CLLocationCoordinate2D!     //用户当前位置坐标
     
     //改变缩放比例
     @objc func btnClickAction(button : UIButton) -> Void {
@@ -112,7 +114,7 @@ extension NSMapViewManager : BMKMapViewDelegate{
         mapView.showsUserLocation = true
         mapView.delegate = self
         mapView.showMapScaleBar = true
-        mapView.mapScaleBarPosition = CGPoint(x: SCREEN_WIDTH - 60 , y: SCREEN_HEIGHT -  CGFloat(CommonUseClass._sharedManager.navigationBarHeight()) - 30)
+        mapView.mapScaleBarPosition = CGPoint(x: SCREEN_WIDTH - 41 , y: SCREEN_HEIGHT -  CGFloat(CommonUseClass._sharedManager.navigationBarHeight()) - 35)
 
         viewController.view.addSubview(mapView)
         viewController.view.addSubview(reloadView)
@@ -138,6 +140,7 @@ extension NSMapViewManager : BMKMapViewDelegate{
         mapView.updateLocationData(userLocation)
         
         mapView.centerCoordinate = userLocation.location.coordinate
+        userCurrentCoor = userLocation.location.coordinate
         
         let reverseGeocodeSearchOption = BMKReverseGeoCodeOption()
         reverseGeocodeSearchOption.reverseGeoPoint = userLocation.location.coordinate
@@ -177,13 +180,13 @@ extension NSMapViewManager : BMKMapViewDelegate{
     //获取大头针的操作
     func mapView(_ mapView: BMKMapView!, didSelect view: BMKAnnotationView!) {
         if view.isKind(of: BMKAnnotationView.self) {
-            
+            destinationCoor = view.annotation.coordinate
+            setupDefaultData()
         }
     }
     
-    //地图状态更改
     func mapStatusDidChanged(_ mapView: BMKMapView!) {
-        mapView.mapScaleBarPosition = CGPoint(x: SCREEN_WIDTH - mapView.mapScaleBarSize.width - 20 , y: SCREEN_HEIGHT -  CGFloat(CommonUseClass._sharedManager.navigationBarHeight()) - 30)
+        mapView.mapScaleBarPosition = CGPoint(x: SCREEN_WIDTH - mapView.mapScaleBarSize.width / 2 - 41 , y: SCREEN_HEIGHT -  CGFloat(CommonUseClass._sharedManager.navigationBarHeight()) - 35)
     }
 }
 
@@ -203,12 +206,10 @@ extension NSMapViewManager : BMKLocationServiceDelegate,BMKGeoCodeSearchDelegate
         locationService.startUserLocationService()
     }
     
-    //处理方向变更信息
     func didUpdateUserHeading(_ userLocation: BMKUserLocation!) {
         print(userLocation.heading)
     }
-    
-    //定位失败
+
     func didFailToLocateUserWithError(_ error: Error!) {
         print("定位失败:\(String(describing: error))")
     }
@@ -228,12 +229,11 @@ extension NSMapViewManager : BMKLocationServiceDelegate,BMKGeoCodeSearchDelegate
 
 extension NSMapViewManager : BMKPoiSearchDelegate {
     
-    //POI检索
     func setPoiSearch() -> Void {
         let citySearchOption = BMKCitySearchOption()
         citySearchOption.pageIndex = 0
         citySearchOption.pageCapacity = 20
-        citySearchOption.city = "广州"
+        citySearchOption.city = "汕头"
         citySearchOption.keyword = searchText
         
         let flage : Bool = poiSearch.poiSearch(inCity: citySearchOption)
@@ -294,4 +294,164 @@ extension NSMapViewManager : UISearchBarDelegate,UITextFieldDelegate{
         contentSearch.resignFirstResponder()
     }
     
+}
+
+
+extension NSMapViewManager : BMKRouteSearchDelegate {
+
+    func setupDefaultData() {
+        
+        //实例化驾车查询基础信息类对象
+        let drivingRoutePlanOption = BMKDrivingRoutePlanOption()
+        //实例化线路检索节点信息类对象
+        let start = BMKPlanNode()
+        //起点名称
+//        start.name = "汕头市科技馆"
+//        //起点所在城市
+//        start.cityName = "汕头市"
+        start.pt = userCurrentCoor
+        //实例化线路检索节点信息类对象
+        let end = BMKPlanNode()
+        //终点名称
+//        end.name = "火车站"
+//        //终点所在城市
+//        end.cityName = "汕头市"
+        end.pt = destinationCoor
+        drivingRoutePlanOption.from = start
+        drivingRoutePlanOption.to = end
+        searchData(drivingRoutePlanOption)
+    }
+    
+    func searchData(_ option: BMKDrivingRoutePlanOption) {
+        
+        //初始化BMKRouteSearch实例
+        let drivingRouteSearch = BMKRouteSearch()
+        //设置驾车路径的规划
+        drivingRouteSearch.delegate = self
+        /*
+         线路检索节点信息类，一个路线检索节点可以通过经纬度坐标或城市名加地名确定
+         实例化线路检索节点信息类对象
+         */
+        let start = BMKPlanNode()
+        //起点坐标
+        start.pt = userCurrentCoor
+        //实例化线路检索节点信息类对象
+        let end = BMKPlanNode()
+        //终点坐标
+        end.pt = destinationCoor
+        //初始化请求参数类BMKDrivingRoutePlanOption的实例
+        let drivingRoutePlanOption = BMKDrivingRoutePlanOption()
+        //检索的起点，可通过关键字、坐标两种方式指定。cityName和cityID同时指定时，优先使用cityID
+        drivingRoutePlanOption.from = start
+        //检索的终点，可通过关键字、坐标两种方式指定。cityName和cityID同时指定时，优先使用cityID
+        drivingRoutePlanOption.to = end
+        //途经点
+        drivingRoutePlanOption.wayPointsArray = option.wayPointsArray
+        /*
+         驾车策略，默认使用BMK_DRIVING_TIME_FIRST
+         BMK_DRIVING_BLK_FIRST：躲避拥堵
+         BMK_DRIVING_TIME_FIRST：最短时间
+         BMK_DRIVING_DIS_FIRST：最短路程
+         BMK_DRIVING_FEE_FIRST：少走高速
+         */
+        drivingRoutePlanOption.drivingPolicy = option.drivingPolicy
+        /*
+         路线中每一个step的路况，默认使用BMK_DRIVING_REQUEST_TRAFFICE_TYPE_NONE
+         BMK_DRIVING_REQUEST_TRAFFICE_TYPE_NONE：不带路况
+         BMK_DRIVING_REQUEST_TRAFFICE_TYPE_PATH_AND_TRAFFICE：道路和路况
+         */
+        drivingRoutePlanOption.drivingRequestTrafficType = option.drivingRequestTrafficType
+        /**
+         发起驾乘路线检索请求，异步函数，返回结果在BMKRouteSearchDelegate的onGetDrivingRouteResult中
+         */
+        let flag = drivingRouteSearch.drivingSearch(drivingRoutePlanOption)
+        if flag {
+            print("驾车检索成功")
+        } else {
+            print("驾车检索失败")
+        }
+    }
+    
+    func onGetDrivingRouteResult(_ searcher: BMKRouteSearch!, result: BMKDrivingRouteResult!, errorCode error: BMKSearchErrorCode) {
+        
+        mapView.removeOverlays(mapView.overlays)
+//        mapView.removeAnnotations(mapView.annotations)
+        
+        //BMKSearchErrorCode错误码，BMK_SEARCH_NO_ERROR：检索结果正常返回
+        if error == BMK_SEARCH_NO_ERROR {
+            //+polylineWithPoints: count:坐标点的个数
+            var pointCount = 0
+            //获取所有驾车路线中第一条路线
+            let routeline: BMKDrivingRouteLine = result.routes[0] as! BMKDrivingRouteLine
+            //遍历驾车路线中的所有路段
+            for (_, item) in routeline.steps.enumerated() {
+                //获取驾车路线中的每条路段
+                let step: BMKDrivingStep = item as! BMKDrivingStep
+                //初始化标注类BMKPointAnnotation的实例
+                let annotation = BMKPointAnnotation()
+                //设置标注的经纬度坐标为子路段的入口经纬度
+                annotation.coordinate = step.entrace.location
+                //设置标注的标题为子路段的说明
+                annotation.title = step.entraceInstruction
+                /**
+                 
+                 当前地图添加标注，需要实现BMKMapViewDelegate的-mapView:viewForAnnotation:方法
+                 来生成标注对应的View
+                 @param annotation 要添加的标注
+                 */
+//                mapView.addAnnotation(annotation)     //暂时不需要路段节点的标注，先注释
+                //统计路段所经过的地理坐标集合内点的个数
+                pointCount += Int(step.pointsCount)
+            }
+            
+            //+polylineWithPoints: count:指定的直角坐标点数组
+            var points = [BMKMapPoint](repeating: BMKMapPoint(x: 0, y: 0), count: pointCount)
+            var count = 0
+            //遍历驾车路线中的所有路段
+            for (_, item) in routeline.steps.enumerated() {
+                //获取驾车路线中的每条路段
+                let step: BMKDrivingStep = item as! BMKDrivingStep
+                //遍历每条路段所经过的地理坐标集合点
+                for index in 0..<Int(step.pointsCount) {
+                    //将每条路段所经过的地理坐标点赋值给points
+                    points[count].x = step.points[index].x
+                    points[count].y = step.points[index].y
+                    count += 1
+                }
+            }
+            //根据指定直角坐标点生成一段折线
+            let polyline = BMKPolyline(points: &points, count: UInt(pointCount))
+            /**
+             向地图View添加Overlay，需要实现BMKMapViewDelegate的-mapView:viewForOverlay:方法
+             来生成标注对应的View
+             
+             @param overlay 要添加的overlay
+             */
+            mapView.add(polyline)
+            //根据polyline设置地图范围
+//            mapViewFitPolyline(polyline!, mapView)
+        }
+    }
+    
+    /**
+     根据overlay生成对应的BMKOverlayView
+     
+     @param mapView 地图View
+     @param overlay 指定的overlay
+     @return 生成的覆盖物View
+     */
+    func mapView(_ mapView: BMKMapView!, viewFor overlay: BMKOverlay!) -> BMKOverlayView! {
+        if overlay.isKind(of: BMKPolyline.self) {
+            //初始化一个overlay并返回相应的BMKPolylineView的实例
+            let polylineView = BMKPolylineView.init(overlay: overlay)
+            //设置polylineView的填充色
+            polylineView?.fillColor = UIColor.cyan.withAlphaComponent(1)
+            //设置polylineView的画笔（边框）颜色
+            polylineView?.strokeColor = UIColor.cyan.withAlphaComponent(0.7)
+            //设置polygonView的线宽度
+            polylineView?.lineWidth = 2.0
+            return polylineView
+        }
+        return nil
+    }
 }
